@@ -2,6 +2,7 @@ import os
 import json
 import tkinter as tk
 from tkinter import ttk
+from ttkthemes import ThemedTk  # Modern themes
 import speech_recognition as sr
 from gtts import gTTS
 import pygame
@@ -72,7 +73,8 @@ class AudioBibleApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Enhanced Audio Bible System")
-        self.root.geometry("400x300")
+        self.root.geometry("500x400")
+        self.root.set_theme("arc")  # Apply a modern theme
 
         # Load Bible data
         self.audio_folder = "bible_audio_files"
@@ -88,29 +90,34 @@ class AudioBibleApp:
         if self.last_verse:
             print(f"Resuming from last played verse: {self.last_verse}")
 
-        # GUI Components
-        self.title_label = tk.Label(root, text="Enhanced Audio Bible System", font=("Arial", 16))
-        self.title_label.pack(pady=10)
+        # Custom Fonts
+        self.title_font = ("Helvetica", 18, "bold")
+        self.label_font = ("Helvetica", 12)
+        self.button_font = ("Helvetica", 12, "bold")
 
-        self.verse_label = tk.Label(root, text="Select a Verse:", font=("Arial", 12))
+        # GUI Components
+        self.title_label = ttk.Label(root, text="Enhanced Audio Bible System", font=self.title_font)
+        self.title_label.pack(pady=20)
+
+        self.verse_label = ttk.Label(root, text="Select a Verse:", font=self.label_font)
         self.verse_label.pack()
 
         # Dropdown for verse selection
         self.verse_var = tk.StringVar()
-        self.verse_dropdown = ttk.Combobox(root, textvariable=self.verse_var)
+        self.verse_dropdown = ttk.Combobox(root, textvariable=self.verse_var, font=self.label_font)
         self.verse_dropdown["values"] = list(self.bible_data.keys())
         self.verse_dropdown.pack(pady=10)
 
         # Play Button
-        self.play_button = tk.Button(root, text="Play", command=self.play_verse)
-        self.play_button.pack(pady=10)
+        self.play_button = ttk.Button(root, text="Play", command=self.play_verse, style="Accent.TButton")
+        self.play_button.pack(pady=20)
 
         # Progress Label
-        self.progress_label = tk.Label(root, text="", font=("Arial", 12))
+        self.progress_label = ttk.Label(root, text="", font=self.label_font)
         self.progress_label.pack(pady=10)
 
         # Exit Button
-        self.exit_button = tk.Button(root, text="Exit", command=root.quit)
+        self.exit_button = ttk.Button(root, text="Exit", command=root.quit)
         self.exit_button.pack(pady=10)
 
     def play_verse(self):
@@ -126,6 +133,6 @@ class AudioBibleApp:
 
 # Run the application
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ThemedTk(theme="arc")  # Use a modern theme
     app = AudioBibleApp(root)
     root.mainloop()
