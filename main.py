@@ -1,9 +1,14 @@
 import os
 import json
+import tkinter as tk
+from tkinter import ttk
 import speech_recognition as sr
 from gtts import gTTS
 import pygame
 import time
+
+# Initialize pygame for audio playback
+pygame.mixer.init()
 
 # Step 1: Convert Audio (WAV) to Text
 def audio_to_text(audio_file):
@@ -45,7 +50,6 @@ def text_to_speech(text, output_file):
 
 # Step 4: Play Audio using pygame
 def play_audio(file):
-    pygame.mixer.init()
     pygame.mixer.music.load(file)
     pygame.mixer.music.play()
     while pygame.mixer.music.get_busy():  # Wait for the audio to finish playing
@@ -63,36 +67,65 @@ def load_progress():
     except FileNotFoundError:
         return None
 
-# Step 6: Main CLI Function
-def main():
-    audio_folder = "bible_audio_files"
-    bible_data = organize_bible_data(audio_folder)
+# Step 6: GUI Application
+class AudioBibleApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Enhanced Audio Bible System")
+        self.root.geometry("400x300")
 
-    # Save the organized data to a JSON file
-    with open("bible_data.json", "w", encoding="utf-8") as file:
-        json.dump(bible_data, file, ensure_ascii=False, indent=4)
-    print("Bible data organized and saved to bible_data.json")
+        # Load Bible data
+        self.audio_folder = "bible_audio_files"
+        self.bible_data = organize_bible_data(self.audio_folder)
 
-    # Load user progress
-    last_verse = load_progress()
-    if last_verse:
-        print(f"Resuming from last played verse: {last_verse}")
+        # Save the organized data to a JSON file
+        with open("bible_data.json", "w", encoding="utf-8") as file:
+            json.dump(self.bible_data, file, ensure_ascii=False, indent=4)
+        print("Bible data organized and saved to bible_data.json")
 
-    print("Welcome to the Enhanced Audio Bible System!")
-    print("Available verses:", list(bible_data.keys()))
+        # Load user progress
+        self.last_verse = load_progress()
+        if self.last_verse:
+            print(f"Resuming from last played verse: {self.last_verse}")
 
-    while True:
-        verse_name = input("Enter the verse name (e.g., Genesis_1_1) or 'exit' to quit: ")
-        if verse_name.lower() == "exit":
-            break
-        if verse_name in bible_data:
-            audio_file = bible_data[verse_name]["audio_file"]
-            text = bible_data[verse_name]["text"]
-            print(f"Playing {verse_name}: {text}")
+        # GUI Components
+        self.title_label = tk.Label(root, text="Enhanced Audio Bible System", font=("Arial", 16))
+        self.title_label.pack(pady=10)
+
+        self.verse_label = tk.Label(root, text="Select a Verse:", font=("Arial", 12))
+        self.verse_label.pack()
+
+        # Dropdown for verse selection
+        self.verse_var = tk.StringVar()
+        self.verse_dropdown = ttk.Combobox(root, textvariable=self.verse_var)
+        self.verse_dropdown["values"] = list(self.bible_data.keys())
+        self.verse_dropdown.pack(pady=10)
+
+        # Play Button
+        self.play_button = tk.Button(root, text="Play", command=self.play_verse)
+        self.play_button.pack(pady=10)
+
+        # Progress Label
+        self.progress_label = tk.Label(root, text="", font=("Arial", 12))
+        self.progress_label.pack(pady=10)
+
+        # Exit Button
+        self.exit_button = tk.Button(root, text="Exit", command=root.quit)
+        self.exit_button.pack(pady=10)
+
+    def play_verse(self):
+        verse_name = self.verse_var.get()
+        if verse_name in self.bible_data:
+            audio_file = self.bible_data[verse_name]["audio_file"]
+            text = self.bible_data[verse_name]["text"]
+            self.progress_label.config(text=f"Playing {verse_name}: {text}")
             play_audio(audio_file)
             save_progress(verse_name)  # Save progress
         else:
-            print(f"Verse {verse_name} not found.")
+            self.progress_label.config(text=f"Verse {verse_name} not found.")
 
+# Run the application
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = AudioBibleApp(root)
+    root.mainloop()
