@@ -2,11 +2,12 @@ import os
 import json
 import tkinter as tk
 from tkinter import ttk
-from ttkthemes import ThemedTk  # Modern themes
+from ttkthemes import ThemedTk
 import speech_recognition as sr
 from gtts import gTTS
 import pygame
 import time
+from PIL import Image, ImageTk  # For icons
 
 # Initialize pygame for audio playback
 pygame.mixer.init()
@@ -49,14 +50,7 @@ def text_to_speech(text, output_file):
     tts.save(output_file)
     print(f"Audio saved to {output_file}")
 
-# Step 4: Play Audio using pygame
-def play_audio(file):
-    pygame.mixer.music.load(file)
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():  # Wait for the audio to finish playing
-        time.sleep(1)
-
-# Step 5: Save and Load User Progress
+# Step 4: Save and Load User Progress
 def save_progress(verse_name):
     with open("user_progress.json", "w", encoding="utf-8") as file:
         json.dump({"last_verse": verse_name}, file, ensure_ascii=False, indent=4)
@@ -68,13 +62,13 @@ def load_progress():
     except FileNotFoundError:
         return None
 
-# Step 6: GUI Application
+# Step 5: GUI Application
 class AudioBibleApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Enhanced Audio Bible System")
-        self.root.geometry("500x400")
-        self.root.set_theme("arc")  # Apply a modern theme
+        self.root.geometry("600x500")
+        self.root.set_theme("arc")  # Default theme
 
         # Load Bible data
         self.audio_folder = "bible_audio_files"
@@ -95,6 +89,18 @@ class AudioBibleApp:
         self.label_font = ("Helvetica", 12)
         self.button_font = ("Helvetica", 12, "bold")
 
+        # Load Icons
+        self.play_icon = self.load_icon("icons/play.png")
+        self.pause_icon = self.load_icon("icons/pause.png")
+        self.stop_icon = self.load_icon("icons/stop.png")
+        self.loop_icon = self.load_icon("icons/loop.png")
+        self.shuffle_icon = self.load_icon("icons/shuffle.png")
+
+        # Dark Mode Toggle
+        self.dark_mode = tk.BooleanVar(value=False)
+        self.dark_mode_button = ttk.Checkbutton(root, text="Dark Mode", variable=self.dark_mode, command=self.toggle_dark_mode)
+        self.dark_mode_button.pack(pady=10)
+
         # GUI Components
         self.title_label = ttk.Label(root, text="Enhanced Audio Bible System", font=self.title_font)
         self.title_label.pack(pady=20)
@@ -108,9 +114,29 @@ class AudioBibleApp:
         self.verse_dropdown["values"] = list(self.bible_data.keys())
         self.verse_dropdown.pack(pady=10)
 
+        # Playback Controls Frame
+        self.controls_frame = ttk.Frame(root)
+        self.controls_frame.pack(pady=20)
+
         # Play Button
-        self.play_button = ttk.Button(root, text="Play", command=self.play_verse, style="Accent.TButton")
-        self.play_button.pack(pady=20)
+        self.play_button = ttk.Button(self.controls_frame, image=self.play_icon, command=self.play_verse)
+        self.play_button.grid(row=0, column=0, padx=5)
+
+        # Pause Button
+        self.pause_button = ttk.Button(self.controls_frame, image=self.pause_icon, command=self.pause_audio)
+        self.pause_button.grid(row=0, column=1, padx=5)
+
+        # Stop Button
+        self.stop_button = ttk.Button(self.controls_frame, image=self.stop_icon, command=self.stop_audio)
+        self.stop_button.grid(row=0, column=2, padx=5)
+
+        # Loop Button
+        self.loop_button = ttk.Button(self.controls_frame, image=self.loop_icon, command=self.toggle_loop)
+        self.loop_button.grid(row=0, column=3, padx=5)
+
+        # Shuffle Button
+        self.shuffle_button = ttk.Button(self.controls_frame, image=self.shuffle_icon, command=self.toggle_shuffle)
+        self.shuffle_button.grid(row=0, column=4, padx=5)
 
         # Progress Label
         self.progress_label = ttk.Label(root, text="", font=self.label_font)
@@ -120,16 +146,69 @@ class AudioBibleApp:
         self.exit_button = ttk.Button(root, text="Exit", command=root.quit)
         self.exit_button.pack(pady=10)
 
+        # Playback State
+        self.is_playing = False
+        self.is_paused = False
+        self.is_looping = False
+        self.is_shuffled = False
+
+    def load_icon(self, path):
+        """Load an icon image from the specified path."""
+        image = Image.open(path)
+        image = image.resize((32, 32), Image.ANTIALIAS)
+        return ImageTk.PhotoImage(image)
+
+    def toggle_dark_mode(self):
+        """Toggle between light and dark mode."""
+        if self.dark_mode.get():
+            self.root.set_theme("equilux")  # Dark theme
+        else:
+            self.root.set_theme("arc")  # Light theme
+
     def play_verse(self):
+        """Play the selected verse."""
         verse_name = self.verse_var.get()
         if verse_name in self.bible_data:
             audio_file = self.bible_data[verse_name]["audio_file"]
             text = self.bible_data[verse_name]["text"]
             self.progress_label.config(text=f"Playing {verse_name}: {text}")
-            play_audio(audio_file)
+            pygame.mixer.music.load(audio_file)
+            pygame.mixer.music.play()
+            self.is_playing = True
+            self.is_paused = False
             save_progress(verse_name)  # Save progress
         else:
             self.progress_label.config(text=f"Verse {verse_name} not found.")
+
+    def pause_audio(self):
+        """Pause or resume the audio playback."""
+        if self.is_playing:
+            if self.is_paused:
+                pygame.mixer.music.unpause()
+                self.is_paused = False
+            else:
+                pygame.mixer.music.pause()
+                self.is_paused = True
+
+    def stop_audio(self):
+        """Stop the audio playback."""
+        pygame.mixer.music.stop()
+        self.is_playing = False
+        self.is_paused = False
+
+    def toggle_loop(self):
+        """Toggle loop mode."""
+        self.is_looping = not self.is_looping
+        pygame.mixer.music.set_endevent(pygame.USEREVENT if self.is_looping else 0)
+
+    def toggle_shuffle(self):
+        """Toggle shuffle mode."""
+        self.is_shuffled = not self.is_shuffled
+        if self.is_shuffled:
+            import random
+            random.shuffle(list(self.bible_data.keys()))
+        else:
+            self.verse_dropdown["values"] = list(self.bible_data.keys())
 
 # Run the application
 if __name__ == "__main__":
