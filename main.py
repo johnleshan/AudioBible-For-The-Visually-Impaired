@@ -153,10 +153,17 @@ class AudioBibleApp:
         self.is_shuffled = False
 
     def load_icon(self, path):
-        """Load an icon image from the specified path."""
-        image = Image.open(path)
-        image = image.resize((32, 32), Image.ANTIALIAS)
-        return ImageTk.PhotoImage(image)
+        """Load an icon image from the specified path with error handling."""
+        try:
+            image = Image.open(path)
+            # Updated resizing method for modern Pillow versions
+            image = image.resize((32, 32), Image.Resampling.LANCZOS)
+            return ImageTk.PhotoImage(image)
+        except Exception as e:
+            print(f"Error loading icon {path}: {e}")
+            # Return a blank image if icon fails to load
+            blank_image = Image.new('RGBA', (32, 32), (0, 0, 0, 0))
+            return ImageTk.PhotoImage(blank_image)
 
     def toggle_dark_mode(self):
         """Toggle between light and dark mode."""
